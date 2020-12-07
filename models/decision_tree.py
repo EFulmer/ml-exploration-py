@@ -5,6 +5,7 @@
 import csv
 import pprint
 import random
+import typing
 
 
 def main():
@@ -39,8 +40,9 @@ def main():
     EXPECTED_MEAN_ACCURACY = 97.299  # rounded to thousandths
     assert round(mean_accuracy, 3) == EXPECTED_MEAN_ACCURACY
 
+
 # Load a CSV file
-def load_csv(filename):
+def load_csv(filename: str) -> typing.List[str]:
     file_ = open(filename, "rt")
     lines = csv.reader(file_)
     dataset = list(lines)
@@ -96,7 +98,6 @@ def accuracy_metric(actual, predicted):
     return correct / float(len(actual)) * 100.0
 
 
-# Classification and Regression Tree Algorithm
 def decision_tree(train, test, max_depth, min_size):
     """Create a decision tree and run predictions on it.
 
@@ -144,16 +145,21 @@ def build_internal_node(dataset):
     Returns:
         Dict representing the node.
     """
-    class_values = list(set(row[-1] for row in dataset))
+    class_values = list(set(observation[-1] for observation in dataset))
     b_index, b_value, b_score, b_groups = 999, 999, 999, None
-    for index in range(len(dataset[0]) - 1):
-        for row in dataset:
-            groups = test_split(index, row[index], dataset)
+    # For each feature:
+    for feature in range(len(dataset[0]) - 1):
+        # For each observation/sample:
+        for observation in dataset:
+            # Test the Gini score of splitting the dataset on the value
+            # of the current feature at the current observation.
+            groups = test_split(feature, observation[feature], dataset)
             gini = gini_index(groups, class_values)
+            # If the Gini score for this split is the best one yet, use that.
             if gini < b_score:
                 b_index, b_value, b_score, b_groups = (
-                    index,
-                    row[index],
+                    feature,
+                    observation[feature],
                     gini,
                     groups,
                 )
@@ -162,29 +168,40 @@ def build_internal_node(dataset):
 
 # TODO potential refactoring: change dataset to DataFrame and index to
 # a column.
-def test_split(index, value, dataset):
-    """Split a dataset based on an attribute and a specified cutoff
-    value for that attribute.
+def test_split(index, partition_value, dataset):
+    """Split a dataset based on a feature and a specified cutoff value
+    for that feature.
 
     Args:
         index: Column of the attribute in the input matrix.
-        value: Threshold/cutoff value for the attribute.
+        partition_value: Threshold/cutoff value for the feature.
         dataset: Training set.
 
     Returns:
         Pair of lists partitioning the training set by attribute value.
+        First list is observations where the feature is less than the
+        partition value, second has all observations where the features
+        are greater than or equal to the partition value.
     """
-    left, right = list(), list()
-    for row in dataset:
-        if row[index] < value:
-            left.append(row)
+    lt, ge = list(), list()
+    for observation in dataset:
+        if observation[index] < partition_value:
+            lt.append(observation)
         else:
-            right.append(row)
-    return left, right
+            ge.append(observation)
+    return lt, ge
 
 
-# Calculate the Gini index for a split dataset
 def gini_index(groups, classes):
+    """Calculate the Gini index for a specific split.
+
+    Args:
+        groups (List[List]): Branches of the decision tree.
+        classes (List[int]): List of output labels.
+
+    Returns:
+        float: The Gini score.
+    """
     # count all samples at split point
     n_instances = float(sum([len(group) for group in groups]))
     # sum weighted Gini index for each group
@@ -231,7 +248,15 @@ def split(node, max_depth, min_size, depth):
 
 
 # Create a terminal node value
-def build_leaf(group):
+def build_leaf(group: typing.Iterable) -> float:
+    """Build a leaf node for the decision tree.
+
+    Args:
+        group:
+
+    Returns:
+        The predicted value.
+    """
     outcomes = [row[-1] for row in group]
     return max(set(outcomes), key=outcomes.count)
 
