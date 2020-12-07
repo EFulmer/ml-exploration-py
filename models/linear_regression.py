@@ -22,7 +22,11 @@ def mse(X: np.array, y: np.array, theta: np.array) -> np.float64:
 
 
 def gradient_descent(
-    X: np.array, y: np.array, alpha: float, theta: np.array, num_iters: int,
+    X: np.array,
+    y: np.array,
+    alpha: float,
+    theta: np.array,
+    num_iters: int,
 ) -> np.array:
     """Perform gradient descent.
 
